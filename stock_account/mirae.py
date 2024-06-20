@@ -1,28 +1,34 @@
 from datetime import datetime
 import requests
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.edge.service import Service
 from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
+from stock_account.exceptions import LoginFailedException
 from stock_account.schemas import HeldCash, HeldCashEquivalent, HeldEquity, HeldGoldSpot
 
 
 class MiraeAccount:
     def login(user_id: str, user_password: str):
-        options = Options()
-        options.add_argument("--headless=new")
+        try:
+            options = Options()
+            options.add_argument("--headless=new")
 
-        driver = webdriver.Edge(options=options, service=Service(EdgeChromiumDriverManager().install()))
-        driver.get("https://securities.miraeasset.com/mw/login.do")
+            driver = webdriver.Edge(options=options, service=Service(EdgeChromiumDriverManager().install()))
+            driver.get("https://securities.miraeasset.com/mw/login.do")
 
-        driver.execute_script(f"document.querySelector('#usid').value = '{user_id}'")
-        driver.execute_script(f"document.querySelector('#clt_ecp_pwd').value = '{user_password}'")
-        driver.execute_script("doSubmit();")
-        _ = WebDriverWait(driver, 10).until(lambda x: x.current_url == "https://securities.miraeasset.com/mw/main.do")
+            driver.execute_script(f"document.querySelector('#usid').value = '{user_id}';")
+            driver.execute_script(f"document.querySelector('#clt_ecp_pwd').value = '{user_password}';")
+            driver.execute_script("doSubmit();")
+            _ = WebDriverWait(driver, 5).until(lambda x: x.current_url == "https://securities.miraeasset.com/mw/main.do")
 
-        access_token = driver.get_cookie("MIREADW_D")["value"]
-        driver.close()
+            access_token = driver.get_cookie("MIREADW_D")["value"]
+        except TimeoutException:
+            raise LoginFailedException
+        finally:
+            driver.close()
 
         return MiraeAccount(access_token)
 
