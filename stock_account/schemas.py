@@ -11,9 +11,6 @@ class HeldAsset:
     exchange_rate: float = field(repr=False)
     market_value: float
 
-    def prettify_account_number(self) -> str:
-        return self.account_number[0:3] + "-" + self.account_number[3:5] + "-" + self.account_number[5:]
-
 
 @dataclass(frozen=True)
 class HeldCash(HeldAsset):

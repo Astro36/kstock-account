@@ -22,7 +22,9 @@ class MiraeAccount:
             driver.execute_script(f"document.querySelector('#usid').value = '{user_id}';")
             driver.execute_script(f"document.querySelector('#clt_ecp_pwd').value = '{user_password}';")
             driver.execute_script("doSubmit();")
-            _ = WebDriverWait(driver, 5).until(lambda x: x.current_url == "https://securities.miraeasset.com/mw/main.do")
+            _ = WebDriverWait(driver, 5).until(
+                lambda x: x.current_url == "https://securities.miraeasset.com/mw/main.do"
+            )
 
             access_token = driver.get_cookie("MIREADW_D")["value"]
         except TimeoutException:
@@ -44,7 +46,7 @@ class MiraeAccount:
         )
         foreign_currencies = [
             HeldCash(
-                account_number=row["acno"],
+                account_number=self._prettify_account_number(row["acno"]),
                 name=row["curr_cd"],
                 currency=row["curr_cd"],
                 exchange_rate=float(row["bas_exr"]),
@@ -59,7 +61,7 @@ class MiraeAccount:
         )
         cash_equivalents = [
             HeldCashEquivalent(
-                account_number=row["acno"],
+                account_number=self._prettify_account_number(row["acno"]),
                 name=row["rp_pd_nm"],
                 currency=row["curr_cd"],
                 exchange_rate=float(row["ea"]) / float(row["frc_ea"]),
@@ -81,7 +83,7 @@ class MiraeAccount:
         )
         equities = [
             HeldEquity(
-                account_number=row["admn_acno"],
+                account_number=self._prettify_account_number(row["admn_acno"]),
                 name=row["itm_nm1"],
                 currency=row["curr_cd"],
                 exchange_rate=float(row["ea"]) / float(row["pitm_ea"]),
@@ -103,7 +105,7 @@ class MiraeAccount:
         )
         golds = [
             HeldGoldSpot(
-                account_number=row["admn_acno"],
+                account_number=self._prettify_account_number(row["admn_acno"]),
                 name=row["itm_nm1"],
                 currency=row["curr_cd"],
                 exchange_rate=float(row["ea"]) / float(row["pitm_ea"]),
@@ -115,3 +117,6 @@ class MiraeAccount:
             for row in r.json()["grid01"]
         ]
         return golds
+
+    def _prettify_account_number(self, account_number) -> str:
+        return account_number[0:3] + "-" + account_number[3:5] + "-" + account_number[5:]
