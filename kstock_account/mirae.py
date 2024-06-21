@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 import requests
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -7,7 +7,8 @@ from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from kstock_account.exceptions import LoginFailedException
-from kstock_account.schemas import HeldCash, HeldCashEquivalent, HeldEquity, HeldGoldSpot
+from kstock_account.schemas import HeldAsset, HeldCash, HeldCashEquivalent, HeldEquity, HeldGoldSpot, HoldingPeriod
+from kstock_account.utils import daterange
 
 
 class MiraeAccount:
@@ -36,6 +37,9 @@ class MiraeAccount:
 
     def __init__(self, access_token) -> None:
         self.access_token = access_token
+
+    def get_assets(self) -> list[HeldAsset]:
+        return self.get_cash_assets() + self.get_equity_assets() + self.get_gold_spot_assets()
 
     def get_cash_assets(self) -> list[HeldCash]:
         r = requests.post(
@@ -117,6 +121,45 @@ class MiraeAccount:
             for row in r.json()["grid01"]
         ]
         return golds
+
+    def get_portfolio_history(self, start_date: date, end_date: date = None):
+        if end_date is None:
+            end_date = datetime.now().date()
+        account_numbers = self._get_raw_account_numbers()
+        history = []
+        for target_date in daterange(start_date, end_date):
+            history.append(self._get_portfolio_daily_record(target_date, account_numbers))
+        return history
+
+    def _get_raw_account_numbers(self) -> list[str]:
+        r = requests.post(
+            "https://securities.miraeasset.com/banking/getMyAccountListData.json",
+            cookies={"MIREADW_D": self.access_token},
+        )
+        account_numbers = [row["acno"] for row in r.json()["grid01"]]
+        return account_numbers
+
+    def _get_portfolio_daily_record(self, target_date: date, account_numbers: list[str]) -> HoldingPeriod:
+        r = requests.post(
+            "https://securities.miraeasset.com/hkd/hkd1005/a01.json",
+            data={
+                "ivst_pca_tp": "3",
+                "bns_tlex_mtd_tp": "2",
+                "strt_dt": target_date.strftime("%Y%m%d"),
+                "end_dt": target_date.strftime("%Y%m%d"),
+                "grid_cnt01": len(account_numbers),
+                **{f"GRID01_IN_acno_{i}": account_number for (i, account_number) in enumerate(account_numbers)},
+            },
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+            cookies={"MIREADW_D": self.access_token},
+        )
+        data = r.json()
+        return HoldingPeriod(
+            initial_value=int(data["bss_ea"]),
+            closing_value=int(data["eot_ea"]),
+            cash_inflow=int(data["mnyi_a"]) + int(data["inq_a"]),
+            cash_outflow=int(data["mnyi_a"]) + int(data["outq_a"]),
+        )
 
     def _prettify_account_number(self, account_number) -> str:
         return account_number[0:3] + "-" + account_number[3:5] + "-" + account_number[5:]

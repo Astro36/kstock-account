@@ -22,16 +22,20 @@ class HeldCashEquivalent(HeldCash):
     maturity_date: date
     entry_value: Optional[float] = field(repr=False)
 
-    def get_pnl(self) -> float:
+    @property
+    def pnl(self) -> float:
         return self.market_value - self.entry_value
 
-    def get_pnl_percent(self) -> float:
-        return self.get_pnl() / self.entry_value
+    @property
+    def pnl_percent(self) -> float:
+        return self.pnl / self.entry_value
 
-    def get_market_price(self) -> float:
+    @property
+    def market_price(self) -> float:
         return self.market_value / self.quantity
 
-    def get_entry_price(self) -> float:
+    @property
+    def entry_price(self) -> float:
         return self.entry_value / self.quantity
 
 
@@ -41,16 +45,20 @@ class HeldEquity(HeldAsset):
     quantity: float
     entry_value: Optional[float] = field(repr=False)
 
-    def get_pnl(self) -> float:
+    @property
+    def pnl(self) -> float:
         return self.market_value - self.entry_value
 
-    def get_pnl_percent(self) -> float:
-        return self.get_pnl() / self.entry_value
+    @property
+    def pnl_percent(self) -> float:
+        return self.pnl / self.entry_value
 
-    def get_market_price(self) -> float:
+    @property
+    def market_price(self) -> float:
         return self.market_value / self.quantity
 
-    def get_entry_price(self) -> float:
+    @property
+    def entry_price(self) -> float:
         return self.entry_value / self.quantity
 
 
@@ -60,14 +68,34 @@ class HeldGoldSpot(HeldAsset):
     quantity: float
     entry_value: Optional[float] = field(repr=False)
 
-    def get_pnl(self) -> float:
+    @property
+    def pnl(self) -> float:
         return self.market_value - self.entry_value
 
-    def get_pnl_percent(self) -> float:
-        return self.get_pnl() / self.entry_value
+    @property
+    def pnl_percent(self) -> float:
+        return self.pnl / self.entry_value
 
-    def get_market_price(self) -> float:
+    @property
+    def market_price(self) -> float:
         return self.market_value / self.quantity
 
-    def get_entry_price(self) -> float:
+    @property
+    def entry_price(self) -> float:
         return self.entry_value / self.quantity
+
+
+@dataclass(frozen=True)
+class HoldingPeriod:
+    initial_value: int = field(repr=False)
+    closing_value: int
+    cash_inflow: int = field(repr=False)
+    cash_outflow: int = field(repr=False)
+
+    @property
+    def pnl(self) -> float:
+        return self.closing_value - (self.initial_value + self.cash_inflow - self.cash_outflow)
+
+    @property
+    def pnl_percent(self) -> float:
+        return self.pnl / (self.initial_value + self.cash_inflow - self.cash_outflow)
