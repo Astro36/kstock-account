@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "stock-account"
+name = "kstock-account"
 version = "0.1.0"
 description = ""
 authors = ["Seungjae Park <astro.psj@gmail.com>"]
@@ -8,7 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.10"
 requests = "^2.32.3"
-selenium = "^4.21.0"
+selenium = "^4.22.0"
 webdriver-manager = "^4.0.1"
 
 [tool.black]

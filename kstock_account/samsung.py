@@ -8,8 +8,8 @@ from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
-from stock_account.exceptions import LoginFailedException
-from stock_account.schemas import HeldAsset, HeldCash, HeldEquity
+from kstock_account.exceptions import LoginFailedException
+from kstock_account.schemas import HeldAsset, HeldCash, HeldEquity
 import time
 
 

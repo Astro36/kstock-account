@@ -6,8 +6,8 @@ from selenium.webdriver.edge.service import Service
 from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
-from stock_account.exceptions import LoginFailedException
-from stock_account.schemas import HeldCash, HeldCashEquivalent, HeldEquity, HeldGoldSpot
+from kstock_account.exceptions import LoginFailedException
+from kstock_account.schemas import HeldCash, HeldCashEquivalent, HeldEquity, HeldGoldSpot
 
 
 class MiraeAccount:
