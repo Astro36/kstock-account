@@ -86,7 +86,7 @@ class HeldGoldSpot(HeldAsset):
 
 
 @dataclass(frozen=True)
-class HoldingPeriod:
+class HoldingPeriodRecord:
     initial_value: int = field(repr=False)
     closing_value: int
     cash_inflow: int = field(repr=False)
