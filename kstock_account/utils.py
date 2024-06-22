@@ -9,6 +9,16 @@ def daterange(start_date: date, end_date: date):
     yield end_date
 
 
+def weekrange(start_date: date, end_date: date):
+    s = start_date
+    e = start_date + timedelta(days=6 - start_date.weekday())
+    while e <= end_date:
+        yield (s, e)
+        s = e + timedelta(days=1)
+        e = s + timedelta(days=6)
+    yield (s, end_date)
+
+
 def monthrange(start_date: date, end_date: date):
     start_date = _last_date_of_month(start_date.year, start_date.month)
     while start_date < end_date:

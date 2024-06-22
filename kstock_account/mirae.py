@@ -7,8 +7,15 @@ from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from kstock_account.exceptions import LoginFailedException
-from kstock_account.schemas import HeldAsset, HeldCash, HeldCashEquivalent, HeldEquity, HeldGoldSpot, HoldingPeriodRecord
-from kstock_account.utils import daterange
+from kstock_account.schemas import (
+    HeldAsset,
+    HeldCash,
+    HeldCashEquivalent,
+    HeldEquity,
+    HeldGoldSpot,
+    HoldingPeriodRecord,
+)
+from kstock_account.utils import weekrange
 
 
 class MiraeAccount:
@@ -23,9 +30,7 @@ class MiraeAccount:
             driver.execute_script(f"document.querySelector('#usid').value = '{user_id}';")
             driver.execute_script(f"document.querySelector('#clt_ecp_pwd').value = '{user_password}';")
             driver.execute_script("doSubmit();")
-            _ = WebDriverWait(driver, 5).until(
-                lambda x: x.current_url == "https://securities.miraeasset.com/mw/main.do"
-            )
+            _ = WebDriverWait(driver, 5).until(lambda x: x.current_url == "https://securities.miraeasset.com/mw/main.do")
 
             access_token = driver.get_cookie("MIREADW_D")["value"]
         except TimeoutException:
@@ -122,14 +127,19 @@ class MiraeAccount:
         ]
         return golds
 
-    def get_history(self, start_date: date, end_date: date = None):
+    def get_history(self, start_date: date, end_date: date = None) -> list[HoldingPeriodRecord]:
         if end_date is None:
             end_date = datetime.now().date()
         account_numbers = self._get_raw_account_numbers()
-        history = []
-        for target_date in daterange(start_date, end_date):
-            history.append((target_date, self._get_account_holding_period_record(target_date, target_date, account_numbers)))
+        history = [self._get_account_holding_period_record(target_start_date, target_end_date, account_numbers) for (target_start_date, target_end_date) in weekrange(start_date, end_date)]
         return history
+
+    def get_holding_period_record(self, start_date: date, end_date: date = None) -> HoldingPeriodRecord:
+        if end_date is None:
+            end_date = datetime.now().date()
+        account_numbers = self._get_raw_account_numbers()
+        record = self._get_account_holding_period_record(start_date, end_date, account_numbers)
+        return record
 
     def _get_raw_account_numbers(self) -> list[str]:
         r = requests.post(
@@ -139,9 +149,7 @@ class MiraeAccount:
         account_numbers = [row["acno"] for row in r.json()["grid01"]]
         return account_numbers
 
-    def _get_account_holding_period_record(
-        self, start_date: date, end_date: date, raw_account_numbers: list[str]
-    ) -> HoldingPeriodRecord:
+    def _get_account_holding_period_record(self, start_date: date, end_date: date, raw_account_numbers: list[str]) -> HoldingPeriodRecord:
         r = requests.post(
             "https://securities.miraeasset.com/hkd/hkd1005/a01.json",
             data={
@@ -157,10 +165,12 @@ class MiraeAccount:
         )
         data = r.json()
         return HoldingPeriodRecord(
+            start_date=start_date,
+            end_date=end_date,
             initial_value=int(data["bss_ea"]),
             closing_value=int(data["eot_ea"]),
             cash_inflow=int(data["mnyi_a"]) + int(data["inq_a"]),
-            cash_outflow=int(data["mnyi_a"]) + int(data["outq_a"]),
+            cash_outflow=int(data["mnyo_a"]) + int(data["outq_a"]),
         )
 
     def _prettify_account_number(self, account_number) -> str:

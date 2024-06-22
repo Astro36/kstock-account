@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -20,7 +19,7 @@ class HeldCash(HeldAsset):
 @dataclass(frozen=True)
 class HeldCashEquivalent(HeldCash):
     maturity_date: date
-    entry_value: Optional[float] = field(repr=False)
+    entry_value: float = field(repr=False)
 
     @property
     def pnl(self) -> float:
@@ -43,7 +42,7 @@ class HeldCashEquivalent(HeldCash):
 class HeldEquity(HeldAsset):
     symbol: str
     quantity: float
-    entry_value: Optional[float] = field(repr=False)
+    entry_value: float = field(repr=False)
 
     @property
     def pnl(self) -> float:
@@ -66,7 +65,7 @@ class HeldEquity(HeldAsset):
 class HeldGoldSpot(HeldAsset):
     symbol: str
     quantity: float
-    entry_value: Optional[float] = field(repr=False)
+    entry_value: float = field(repr=False)
 
     @property
     def pnl(self) -> float:
@@ -87,7 +86,9 @@ class HeldGoldSpot(HeldAsset):
 
 @dataclass(frozen=True)
 class HoldingPeriodRecord:
-    initial_value: int = field(repr=False)
+    start_date: date
+    end_date: date
+    initial_value: int
     closing_value: int
     cash_inflow: int = field(repr=False)
     cash_outflow: int = field(repr=False)
