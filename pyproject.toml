@@ -11,8 +11,13 @@ requests = "^2.32.3"
 selenium = "^4.22.0"
 webdriver-manager = "^4.0.1"
 
+[tool.poetry.group.example.dependencies]
+numpy = "^2.0.0"
+pandas = "^2.2.2"
+yfinance = "^0.2.40"
+
 [tool.black]
-line-length = 120
+line-length = 200
 
 [build-system]
 requires = ["poetry-core"]
