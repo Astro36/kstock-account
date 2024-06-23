@@ -1,12 +1,12 @@
-from datetime import date, datetime
+from datetime import datetime, timedelta
+from examples.common import download_weekly_prices
+from kstock_account.mirae import MiraeAccount
 import math
 import numpy as np
 import pandas as pd
-from kstock_account.mirae import MiraeAccount
-from examples.common import download_weekly_prices
 
-start_date = date(2024, 1, 1)
-end_date = datetime.now().date()
+end_date = datetime.now().date() - timedelta(days=1)
+start_date = end_date - timedelta(weeks=52)
 
 account = MiraeAccount.login("", "")
 account_history = account.get_history(start_date, end_date)
@@ -20,7 +20,6 @@ market_returns = market_prices.pct_change(fill_method=None).dropna()
 
 portfolio_period_return = np.cumprod([1 + n for n in portfolio_returns.values])[-1] - 1
 portfolio_annualized_return = (1 + portfolio_period_return) ** (52 / len(portfolio_returns)) - 1
-
 market_period_return = np.cumprod([1 + n for n in market_returns.values])[-1] - 1
 market_annualized_return = (1 + market_period_return) ** (52 / len(market_returns)) - 1
 risk_free_rate = 0.053

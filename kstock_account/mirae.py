@@ -15,7 +15,7 @@ from kstock_account.schemas import (
     HeldGoldSpot,
     HoldingPeriodRecord,
 )
-from kstock_account.utils import weekrange
+from kstock_account.utils import convert_to_yfinance_symbol, weekrange
 
 
 class MiraeAccount:
@@ -42,6 +42,17 @@ class MiraeAccount:
 
     def __init__(self, access_token) -> None:
         self.access_token = access_token
+
+    def get_account_numbers(self) -> list[str]:
+        return [self._prettify_account_number(account_number) for account_number in self._get_raw_account_numbers()]
+
+    def _get_raw_account_numbers(self) -> list[str]:
+        r = requests.post(
+            "https://securities.miraeasset.com/banking/getMyAccountListData.json",
+            cookies={"MIREADW_D": self.access_token},
+        )
+        account_numbers = [row["acno"] for row in r.json()["grid01"]]
+        return account_numbers
 
     def get_assets(self) -> list[HeldAsset]:
         return self.get_cash_assets() + self.get_equity_assets() + self.get_gold_spot_assets()
@@ -97,7 +108,7 @@ class MiraeAccount:
                 currency=row["curr_cd"],
                 exchange_rate=float(row["ea"]) / float(row["pitm_ea"]),
                 market_value=float(row["pitm_ea"]),
-                symbol=row["itm_no"],
+                symbol=convert_to_yfinance_symbol(row["itm_no"]),
                 quantity=float(row["hldg_q"]),
                 entry_value=float(row["pchs_a1"]),
             )
@@ -140,14 +151,6 @@ class MiraeAccount:
         account_numbers = self._get_raw_account_numbers()
         record = self._get_account_holding_period_record(start_date, end_date, account_numbers)
         return record
-
-    def _get_raw_account_numbers(self) -> list[str]:
-        r = requests.post(
-            "https://securities.miraeasset.com/banking/getMyAccountListData.json",
-            cookies={"MIREADW_D": self.access_token},
-        )
-        account_numbers = [row["acno"] for row in r.json()["grid01"]]
-        return account_numbers
 
     def _get_account_holding_period_record(self, start_date: date, end_date: date, raw_account_numbers: list[str]) -> HoldingPeriodRecord:
         r = requests.post(

@@ -1,5 +1,18 @@
 import calendar
 from datetime import date, timedelta
+import re
+import requests
+
+
+def convert_to_yfinance_symbol(symbol: str) -> str:
+    if re.match(r"^A\d{6}$", symbol):
+        symbol = symbol[1:]
+    r = requests.get(
+        f"https://query1.finance.yahoo.com/v1/finance/search?q={symbol}",
+        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36 Edg/126.0.0.0"},
+    )
+    yfinance_symbol = sorted(filter(lambda x: x["symbol"].startswith(symbol), r.json()["quotes"]), key=lambda x: len(x["symbol"]))[0]["symbol"]
+    return yfinance_symbol
 
 
 def daterange(start_date: date, end_date: date):
