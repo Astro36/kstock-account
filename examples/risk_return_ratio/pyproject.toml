@@ -1,0 +1,17 @@
+[tool.poetry]
+package-mode = false
+name = "risk-return-ratio"
+version = "0.1.0"
+description = "Unofficial Korean Securities Company Account Inquiry Library"
+authors = ["Seungjae Park <astro.psj@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^1.26.4"
+pandas = "^2.2.2"
+yfinance = "^0.2.40"
+kstock-account = {path = "../.."}
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

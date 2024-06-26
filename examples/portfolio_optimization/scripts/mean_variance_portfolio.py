@@ -1,9 +1,9 @@
 import cvxpy as cp
-from examples.common import capm_expected_return, download_weekly_prices
 from datetime import datetime, timedelta
 from kstock_account.mirae import MiraeAccount
 import numpy as np
 import pandas as pd
+from .common import capm_expected_return, download_weekly_prices
 
 end_date = datetime.now().date() - timedelta(days=1)
 start_date = end_date - timedelta(weeks=52)

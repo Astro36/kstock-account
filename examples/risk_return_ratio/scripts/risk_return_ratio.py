@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
-from examples.common import download_weekly_prices
 from kstock_account.mirae import MiraeAccount
 import math
 import numpy as np
 import pandas as pd
+from .common import download_weekly_prices
 
 end_date = datetime.now().date() - timedelta(days=1)
 start_date = end_date - timedelta(weeks=52)
