@@ -1,11 +1,7 @@
 from datetime import date, datetime
 import requests
-from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.edge.service import Service
-from selenium.webdriver.edge.options import Options
 from selenium.webdriver.support.wait import WebDriverWait
-from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from kstock_account.exceptions import LoginFailedException
 from kstock_account.schemas import (
     HeldAsset,
@@ -15,16 +11,13 @@ from kstock_account.schemas import (
     HeldGoldSpot,
     HoldingPeriodRecord,
 )
-from kstock_account.utils import convert_to_yfinance_symbol, weekrange
+from kstock_account.utils import convert_to_yfinance_symbol, create_headless_edge_webdriver, weekrange
 
 
 class MiraeAccount:
-    def login(user_id: str, user_password: str):
+    def login(user_id: str, user_password: str, webdriver_fn = create_headless_edge_webdriver):
         try:
-            options = Options()
-            options.add_argument("--headless=new")
-
-            driver = webdriver.Edge(options=options, service=Service(EdgeChromiumDriverManager().install()))
+            driver = webdriver_fn()
             driver.get("https://securities.miraeasset.com/mw/login.do")
 
             driver.execute_script(f"document.querySelector('#usid').value = '{user_id}';")

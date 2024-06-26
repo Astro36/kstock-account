@@ -2,6 +2,10 @@ import calendar
 from datetime import date, timedelta
 import re
 import requests
+from selenium import webdriver
+from selenium.webdriver.edge.service import Service
+from selenium.webdriver.edge.options import Options
+from webdriver_manager.microsoft import EdgeChromiumDriverManager
 
 
 def convert_to_yfinance_symbol(symbol: str) -> str:
@@ -13,6 +17,13 @@ def convert_to_yfinance_symbol(symbol: str) -> str:
     )
     yfinance_symbol = sorted(filter(lambda x: x["symbol"].startswith(symbol), r.json()["quotes"]), key=lambda x: len(x["symbol"]))[0]["symbol"]
     return yfinance_symbol
+
+
+def create_headless_edge_webdriver():
+    options = Options()
+    options.add_argument("--headless=new")
+    driver = webdriver.Edge(options=options, service=Service(EdgeChromiumDriverManager().install()))
+    return driver
 
 
 def daterange(start_date: date, end_date: date):

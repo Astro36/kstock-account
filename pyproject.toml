@@ -21,6 +21,7 @@ classifiers = [
     "Topic :: Office/Business :: Financial :: Investment",
     "Topic :: Software Development :: Libraries",
 ]
+exclude = ["examples"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
