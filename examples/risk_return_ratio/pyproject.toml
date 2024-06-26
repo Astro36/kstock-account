@@ -2,7 +2,7 @@
 package-mode = false
 name = "risk-return-ratio"
 version = "0.1.0"
-description = "Unofficial Korean Securities Company Account Inquiry Library"
+description = "Portfolio Risk Return Ratio Calculation Example Code"
 authors = ["Seungjae Park <astro.psj@gmail.com>"]
 
 [tool.poetry.dependencies]
