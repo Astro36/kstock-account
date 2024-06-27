@@ -29,14 +29,6 @@ class HeldCashEquivalent(HeldCash):
     def pnl_percent(self) -> float:
         return self.pnl / self.entry_value
 
-    @property
-    def market_price(self) -> float:
-        return self.market_value / self.quantity
-
-    @property
-    def entry_price(self) -> float:
-        return self.entry_value / self.quantity
-
 
 @dataclass(frozen=True)
 class HeldEquity(HeldAsset):

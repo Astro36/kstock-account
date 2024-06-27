@@ -1,7 +1,9 @@
 from datetime import date, datetime
 import requests
+from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.wait import WebDriverWait
+from typing import Callable, Optional
 from kstock_account.exceptions import LoginFailedException
 from kstock_account.schemas import (
     HeldAsset,
@@ -15,7 +17,8 @@ from kstock_account.utils import convert_to_yfinance_symbol, create_headless_edg
 
 
 class MiraeAccount:
-    def login(user_id: str, user_password: str, webdriver_fn = create_headless_edge_webdriver):
+    @staticmethod
+    def login(user_id: str, user_password: str, webdriver_fn: Callable[[], webdriver.Remote] = create_headless_edge_webdriver) -> "MiraeAccount":
         try:
             driver = webdriver_fn()
             driver.get("https://securities.miraeasset.com/mw/login.do")
@@ -25,15 +28,17 @@ class MiraeAccount:
             driver.execute_script("doSubmit();")
             _ = WebDriverWait(driver, 5).until(lambda x: x.current_url == "https://securities.miraeasset.com/mw/main.do")
 
-            access_token = driver.get_cookie("MIREADW_D")["value"]
+            if cookie := driver.get_cookie("MIREADW_D"):
+                access_token = cookie["value"]
+            else:
+                raise LoginFailedException
         except TimeoutException:
             raise LoginFailedException
         finally:
             driver.close()
-
         return MiraeAccount(access_token)
 
-    def __init__(self, access_token) -> None:
+    def __init__(self, access_token: str) -> None:
         self.access_token = access_token
 
     def get_account_numbers(self) -> list[str]:
@@ -48,7 +53,7 @@ class MiraeAccount:
         return account_numbers
 
     def get_assets(self) -> list[HeldAsset]:
-        return self.get_cash_assets() + self.get_equity_assets() + self.get_gold_spot_assets()
+        return [*self.get_cash_assets(), *self.get_equity_assets(), *self.get_gold_spot_assets()]
 
     def get_cash_assets(self) -> list[HeldCash]:
         r = requests.post(
@@ -85,9 +90,9 @@ class MiraeAccount:
             for row in r.json()["grid01"]
         ]
 
-        return foreign_currencies + cash_equivalents
+        return [*foreign_currencies, *cash_equivalents]
 
-    def get_equity_assets(self) -> HeldEquity:
+    def get_equity_assets(self) -> list[HeldEquity]:
         r = requests.post(
             "https://securities.miraeasset.com/hkd/hkd1003/a03.json",
             data={"pd_tcd": "01"},
@@ -109,7 +114,7 @@ class MiraeAccount:
         ]
         return equities
 
-    def get_gold_spot_assets(self) -> HeldGoldSpot:
+    def get_gold_spot_assets(self) -> list[HeldGoldSpot]:
         r = requests.post(
             "https://securities.miraeasset.com/hkd/hkd1003/a03.json",
             data={"pd_tcd": "04"},
@@ -131,14 +136,14 @@ class MiraeAccount:
         ]
         return golds
 
-    def get_history(self, start_date: date, end_date: date = None) -> list[HoldingPeriodRecord]:
+    def get_history(self, start_date: date, end_date: Optional[date] = None) -> list[HoldingPeriodRecord]:
         if end_date is None:
             end_date = datetime.now().date()
         account_numbers = self._get_raw_account_numbers()
         history = [self._get_account_holding_period_record(target_start_date, target_end_date, account_numbers) for (target_start_date, target_end_date) in weekrange(start_date, end_date)]
         return history
 
-    def get_holding_period_record(self, start_date: date, end_date: date = None) -> HoldingPeriodRecord:
+    def get_holding_period_record(self, start_date: date, end_date: Optional[date] = None) -> HoldingPeriodRecord:
         if end_date is None:
             end_date = datetime.now().date()
         account_numbers = self._get_raw_account_numbers()
@@ -169,5 +174,5 @@ class MiraeAccount:
             cash_outflow=int(data["mnyo_a"]) + int(data["outq_a"]),
         )
 
-    def _prettify_account_number(self, account_number) -> str:
+    def _prettify_account_number(self, account_number: str) -> str:
         return account_number[0:3] + "-" + account_number[3:5] + "-" + account_number[5:]
