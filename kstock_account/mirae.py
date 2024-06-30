@@ -1,9 +1,11 @@
 from datetime import date, datetime
+from typing import Callable, Optional
+
 import requests
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.wait import WebDriverWait
-from typing import Callable, Optional
+
 from kstock_account.exceptions import LoginFailedException
 from kstock_account.schemas import (
     HeldAsset,
@@ -17,8 +19,34 @@ from kstock_account.utils import convert_to_yfinance_symbol, create_headless_edg
 
 
 class MiraeAccount:
+    """Represents a Mirae Asset Securities account.
+
+    Attributes:
+        access_token (str): The access token for the account API.
+    """
+
     @staticmethod
-    def login(user_id: str, user_password: str, webdriver_fn: Callable[[], webdriver.Remote] = create_headless_edge_webdriver) -> "MiraeAccount":
+    def login(
+        user_id: str,
+        user_password: str,
+        webdriver_fn: Callable[[], webdriver.Remote] = create_headless_edge_webdriver,
+    ) -> "MiraeAccount":
+        """Logs in to Mirae Asset Securities website using the provided user credentials.
+
+        Args:
+            user_id (str): The user ID for the Mirae Asset account.
+            user_password (str): The password for the Mirae Asset account.
+            webdriver_fn (Callable[[], webdriver.Remote], optional):
+                A function that creates a webdriver instance. Defaults to
+                `create_headless_edge_webdriver`.
+
+        Returns:
+            MiraeAccount: An instance of the MiraeAccount class with the
+            access token.
+
+        Raises:
+            LoginFailedException: If the login attempt fails.
+        """
         try:
             driver = webdriver_fn()
             driver.get("https://securities.miraeasset.com/mw/login.do")
@@ -26,7 +54,9 @@ class MiraeAccount:
             driver.execute_script(f"document.querySelector('#usid').value = '{user_id}';")
             driver.execute_script(f"document.querySelector('#clt_ecp_pwd').value = '{user_password}';")
             driver.execute_script("doSubmit();")
-            _ = WebDriverWait(driver, 5).until(lambda x: x.current_url == "https://securities.miraeasset.com/mw/main.do")
+            _ = WebDriverWait(driver, 5).until(
+                lambda x: x.current_url == "https://securities.miraeasset.com/mw/main.do",
+            )
 
             if cookie := driver.get_cookie("MIREADW_D"):
                 access_token = cookie["value"]
@@ -39,9 +69,19 @@ class MiraeAccount:
         return MiraeAccount(access_token)
 
     def __init__(self, access_token: str) -> None:
+        """Constructs a MiraeAccount instance.
+
+        Args:
+            access_token (str): The access token for the account.
+        """
         self.access_token = access_token
 
     def get_account_numbers(self) -> list[str]:
+        """Returns the account numbers of the user's accounts.
+
+        Returns:
+            list[str]: A list of account numbers.
+        """
         return [self._prettify_account_number(account_number) for account_number in self._get_raw_account_numbers()]
 
     def _get_raw_account_numbers(self) -> list[str]:
@@ -53,9 +93,21 @@ class MiraeAccount:
         return account_numbers
 
     def get_assets(self) -> list[HeldAsset]:
+        """Returns the assets held by the user.
+
+        The list includes cash assets, equities, and gold spots.
+
+        Returns:
+            list[HeldAsset]: A list of held assets.
+        """
         return [*self.get_cash_assets(), *self.get_equity_assets(), *self.get_gold_spot_assets()]
 
     def get_cash_assets(self) -> list[HeldCash]:
+        """Returns the cash assets held by the user.
+        
+        Returns:
+            list[HeldCash]: A list of held cash assets.
+        """
         r = requests.post(
             "https://securities.miraeasset.com/hkd/hkd1003/a11.json",
             data={"qry_tcd": "1"},
@@ -93,6 +145,11 @@ class MiraeAccount:
         return [*foreign_currencies, *cash_equivalents]
 
     def get_equity_assets(self) -> list[HeldEquity]:
+        """Returns the equities held by the user.
+        
+        Returns:
+            list[HeldEquity]: A list of held equities.
+        """
         r = requests.post(
             "https://securities.miraeasset.com/hkd/hkd1003/a03.json",
             data={"pd_tcd": "01"},
@@ -115,6 +172,11 @@ class MiraeAccount:
         return equities
 
     def get_gold_spot_assets(self) -> list[HeldGoldSpot]:
+        """Returns the gold spots held by the user.
+        
+        Returns:
+            list[HeldGoldSpot]: A list of held gold spots.
+        """
         r = requests.post(
             "https://securities.miraeasset.com/hkd/hkd1003/a03.json",
             data={"pd_tcd": "04"},
@@ -137,20 +199,46 @@ class MiraeAccount:
         return golds
 
     def get_history(self, start_date: date, end_date: Optional[date] = None) -> list[HoldingPeriodRecord]:
+        """Returns the history of the weekly performance of the user's assets.
+
+        Args:
+            start_date (date): The start date of the history.
+            end_date (Optional[date]): The end date of the history. Defaults to today.
+
+        Returns:
+            List[HoldingPeriodRecord]: The history of the weekly performance of the user's assets.
+        """
         if end_date is None:
             end_date = datetime.now().date()
         account_numbers = self._get_raw_account_numbers()
-        history = [self._get_account_holding_period_record(target_start_date, target_end_date, account_numbers) for (target_start_date, target_end_date) in weekrange(start_date, end_date)]
+        history = [
+            self._get_account_holding_period_record(target_start_date, target_end_date, account_numbers)
+            for (target_start_date, target_end_date) in weekrange(start_date, end_date)
+        ]
         return history
 
     def get_holding_period_record(self, start_date: date, end_date: Optional[date] = None) -> HoldingPeriodRecord:
+        """Returns the record of PnL of the user's assets.
+        
+        Args:
+            start_date (date): The start date of the history.
+            end_date (Optional[date]): The end date of the history. Defaults to today.
+        
+        Returns:
+            HoldingPeriodRecord: The record of PnL of the user's assets.
+        """
         if end_date is None:
             end_date = datetime.now().date()
         account_numbers = self._get_raw_account_numbers()
         record = self._get_account_holding_period_record(start_date, end_date, account_numbers)
         return record
 
-    def _get_account_holding_period_record(self, start_date: date, end_date: date, raw_account_numbers: list[str]) -> HoldingPeriodRecord:
+    def _get_account_holding_period_record(
+        self,
+        start_date: date,
+        end_date: date,
+        raw_account_numbers: list[str],
+    ) -> HoldingPeriodRecord:
         r = requests.post(
             "https://securities.miraeasset.com/hkd/hkd1005/a01.json",
             data={
